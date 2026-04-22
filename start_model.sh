@@ -11,5 +11,12 @@ fi
 
 cd "$SERVICE"
 echo "[$(date)] Starting uvicorn..." >> "$LOG"
-nohup "$PYTHON" -m uvicorn app.main:app --host 0.0.0.0 --port 8000 >> "$LOG" 2>&1 &
+
+# Fully detach from the shell session so studio.run() can return cleanly.
+# stdin redirected from /dev/null so the process has no terminal attachment.
+nohup "$PYTHON" -m uvicorn app.main:app \
+    --host 0.0.0.0 --port 8000 \
+    < /dev/null >> "$LOG" 2>&1 &
+
+disown $!
 echo "[$(date)] uvicorn PID: $!" >> "$LOG"
