@@ -26,18 +26,32 @@ async def lifespan(app: FastAPI):
     logger.info("EasyOCR model ready.")
 
     if settings.enable_video:
-        logger.info("Loading Wan2.2 pipeline (model_id=%s) ...", settings.video_model_id)
         import torch
-        from diffusers import WanPipeline
+        from diffusers import WanImageToVideoPipeline, WanPipeline
 
-        pipe = WanPipeline.from_pretrained(
+        device = "cuda" if settings.gpu else "cpu"
+        token = settings.hf_token or None
+
+        logger.info("Loading Wan2.2 T2V pipeline (%s) ...", settings.video_model_id)
+        t2v_pipe = WanPipeline.from_pretrained(
             settings.video_model_id,
             torch_dtype=torch.bfloat16,
-            token=settings.hf_token or None,
+            token=token,
         )
-        pipe.to("cuda" if settings.gpu else "cpu")
-        app.state.video_service = VideoService(pipe)
-        logger.info("Wan2.2 pipeline ready — loaded fully into VRAM.")
+        t2v_pipe.to(device)
+        logger.info("Wan2.2 T2V ready.")
+
+        logger.info("Loading Wan2.2 I2V pipeline (%s) ...", settings.video_i2v_model_id)
+        i2v_pipe = WanImageToVideoPipeline.from_pretrained(
+            settings.video_i2v_model_id,
+            torch_dtype=torch.bfloat16,
+            token=token,
+        )
+        i2v_pipe.to(device)
+        logger.info("Wan2.2 I2V ready.")
+
+        app.state.video_service = VideoService(t2v_pipe, i2v_pipe)
+        logger.info("Both Wan2.2 pipelines loaded — T2V + I2V fully in VRAM (~56 GB).")
     else:
         logger.info("Video generation disabled (ENABLE_VIDEO=false). Skipping Wan2.2 load.")
 
