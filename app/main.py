@@ -35,9 +35,8 @@ async def lifespan(app: FastAPI):
             torch_dtype=torch.bfloat16,
         )
         pipe.to("cuda" if settings.gpu else "cpu")
-        pipe.enable_model_cpu_offload()
         app.state.video_service = VideoService(pipe)
-        logger.info("Wan2.2 pipeline ready.")
+        logger.info("Wan2.2 pipeline ready — loaded fully into VRAM.")
     else:
         logger.info("Video generation disabled (ENABLE_VIDEO=false). Skipping Wan2.2 load.")
 
