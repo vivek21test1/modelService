@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
         pipe = WanPipeline.from_pretrained(
             settings.video_model_id,
             torch_dtype=torch.bfloat16,
+            token=settings.hf_token or None,
         )
         pipe.to("cuda" if settings.gpu else "cpu")
         app.state.video_service = VideoService(pipe)

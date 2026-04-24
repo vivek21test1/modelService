@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     enable_video: bool = True
     video_model_id: str = "Wan-AI/Wan2.2-T2V-14B"
 
+    # HuggingFace token — required for gated models like Wan2.2
+    hf_token: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
