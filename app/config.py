@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     gpu: bool = True
     languages: list[str] = ["en"]
 
+    # Wan2.2 text-to-video — disabled by default to save GPU memory when not needed
+    enable_video: bool = True
+    video_model_id: str = "Wan-AI/Wan2.2-T2V-14B"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
