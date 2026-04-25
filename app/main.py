@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import easyocr
@@ -6,6 +7,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
+
+# Must be set before any huggingface_hub / diffusers / transformers import.
+# Defaults to a persistent path inside the studio workspace so models are
+# cached across restarts and never re-downloaded.
+_HF_CACHE = os.environ.get("HF_HOME", "/teamspace/studios/this_studio/hf_cache")
+os.environ["HF_HOME"] = _HF_CACHE
+os.makedirs(_HF_CACHE, exist_ok=True)
+
 from .routes.ocr import router as ocr_router
 from .routes.video import router as video_router
 from .services.ocr_service import OCRService
@@ -13,6 +22,7 @@ from .services.video_service import VideoService
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
+logger.info("HuggingFace cache directory: %s", _HF_CACHE)
 
 
 @asynccontextmanager
