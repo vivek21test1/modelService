@@ -6,6 +6,7 @@ import time
 
 import numpy as np
 import torch
+from PIL import Image
 
 from ..schemas.video import VideoRequest, VideoResponse
 
@@ -66,8 +67,11 @@ class VideoService:
                         height=request.height,
                     )
 
-            clip_frames = output.frames[0]  # list[PIL.Image]
-            last_frame = clip_frames[-1]    # seed for next I2V call
+            clip_frames = output.frames[0]  # list[PIL.Image] or list[np.ndarray]
+            # I2V pipeline requires PIL Image — convert if diffusers returned ndarray
+            last_frame = clip_frames[-1]
+            if not isinstance(last_frame, Image.Image):
+                last_frame = Image.fromarray(np.uint8(last_frame))
             all_frames.extend(clip_frames)
 
             logger.info(
