@@ -18,8 +18,8 @@ def generate_video(
     service: VideoService = Depends(get_video_service),
 ) -> VideoResponse:
     logger.info(
-        "POST /video — prompt: %d chars | frames: %d | steps: %d",
-        len(request.prompt), request.num_frames, request.num_inference_steps,
+        "POST /video — clips: %d | frames: %d | steps: %d",
+        len(request.prompts), request.num_frames, request.num_inference_steps,
     )
     t_start = time.perf_counter()
     response = service.generate(request)
