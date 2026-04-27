@@ -10,7 +10,6 @@ class Settings(BaseSettings):
     # Wan2.2 text-to-video — disabled by default to save GPU memory when not needed
     enable_video: bool = True
     video_model_id: str = "Wan-AI/Wan2.2-T2V-A14B-Diffusers"
-    video_i2v_model_id: str = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
 
     # HuggingFace token — required for gated models like Wan2.2
     hf_token: str = ""

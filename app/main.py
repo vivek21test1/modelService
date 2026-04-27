@@ -37,50 +37,26 @@ async def lifespan(app: FastAPI):
 
     if settings.enable_video:
         import torch
-        from diffusers import WanImageToVideoPipeline, WanPipeline
+        from diffusers import WanPipeline
 
         device = "cuda" if settings.gpu else "cpu"
         token = settings.hf_token or None
 
-        # H100 / Ampere+: TF32 gives ~3× faster matmul with negligible precision loss
+        # H200: TF32 gives ~3× faster matmul with negligible precision loss
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
         logger.info("TF32 enabled for matmul and cuDNN.")
 
         logger.info("Loading Wan2.2 T2V pipeline (%s) ...", settings.video_model_id)
-        t2v_pipe = WanPipeline.from_pretrained(
+        pipe = WanPipeline.from_pretrained(
             settings.video_model_id,
             torch_dtype=torch.bfloat16,
             token=token,
-            # Load shard-by-shard directly to GPU — avoids holding full model in CPU RAM
             low_cpu_mem_usage=True,
         )
-        t2v_pipe.to(device)
-        t2v_pipe.vae.enable_slicing()
-        t2v_pipe.vae.enable_tiling()
-        logger.info("Wan2.2 T2V ready.")
-
-        logger.info("Loading Wan2.2 I2V pipeline (%s) ...", settings.video_i2v_model_id)
-        i2v_pipe = WanImageToVideoPipeline.from_pretrained(
-            settings.video_i2v_model_id,
-            torch_dtype=torch.bfloat16,
-            token=token,
-            low_cpu_mem_usage=True,
-        )
-        i2v_pipe.to(device)
-        logger.info("Wan2.2 I2V ready.")
-
-        # H200 (141 GB) fits both pipelines simultaneously — share text encoder and
-        # VAE to recover ~10 GB VRAM (T5 ~9.9 GB + VAE ~0.4 GB counted only once).
-        logger.info("Sharing text_encoder and VAE between T2V and I2V ...")
-        del i2v_pipe.text_encoder
-        del i2v_pipe.vae
-        torch.cuda.empty_cache()
-        i2v_pipe.text_encoder = t2v_pipe.text_encoder
-        i2v_pipe.tokenizer = t2v_pipe.tokenizer
-        i2v_pipe.vae = t2v_pipe.vae
-        i2v_pipe.vae.enable_slicing()
-        i2v_pipe.vae.enable_tiling()
+        pipe.to(device)
+        pipe.vae.enable_slicing()
+        pipe.vae.enable_tiling()
 
         if device == "cuda":
             vram_allocated = torch.cuda.memory_allocated() / 1024 ** 3
@@ -90,10 +66,8 @@ async def lifespan(app: FastAPI):
                 vram_allocated, vram_reserved,
             )
 
-        app.state.video_service = VideoService(t2v_pipe, i2v_pipe)
-        logger.info(
-            "Both Wan2.2 pipelines in VRAM — T2V + I2V with shared text_encoder + VAE."
-        )
+        app.state.video_service = VideoService(pipe)
+        logger.info("Wan2.2 T2V pipeline ready.")
     else:
         logger.info("Video generation disabled (ENABLE_VIDEO=false). Skipping Wan2.2 load.")
 
