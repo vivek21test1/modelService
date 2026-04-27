@@ -74,11 +74,13 @@ class VideoService:
                 last_frame = Image.fromarray(np.uint8(last_frame))
             all_frames.extend(clip_frames)
 
+            torch.cuda.empty_cache()
+            vram_gb = torch.cuda.memory_allocated() / 1024 ** 3
             logger.info(
-                "Clip %d/%d done — %.2fs | %d frames | total so far: %d frames",
+                "Clip %d/%d done — %.2fs | %d frames | total: %d | VRAM: %.1f GB",
                 clip_num, clip_count,
                 time.perf_counter() - t_clip,
-                len(clip_frames), len(all_frames),
+                len(clip_frames), len(all_frames), vram_gb,
             )
 
         gen_elapsed = time.perf_counter() - t_start
